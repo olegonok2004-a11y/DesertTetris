@@ -225,7 +225,7 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
 
 <div class="screen show" id="menu">
  <div class="inf">☀</div>
- <h1>TETRIS</h1><div class="sub">ПУТЬ ЧЕРЕЗ ПУСТЫНЮ</div>
+ <h1>DESERT</h1><div class="sub">TETRIS · ПУТЬ ЧЕРЕЗ ПУСТЫНЮ</div>
  <button class="btn" id="bPlay">ИГРАТЬ</button>
  <button class="btn alt" id="bLevels">УРОВНИ</button>
  <button class="btn alt" id="bSettings">НАСТРОЙКИ</button>
@@ -264,7 +264,7 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
   <ul>
    <li><b>Очки</b> — набрать определённое количество очков.</li>
    <li><b>Линии</b> — собрать заданное число линий.</li>
-   <li><b>Очистить поле</b> — убрать все блоки с поля.</li>
+   <li><b>Расчистка</b> — на поле заранее стоят блоки, нужно убрать их все.</li>
    <li><b>На время</b> — успеть выполнить задачу до конца таймера.</li>
   </ul>
   <b>Управление (ПК / планшет гориз.):</b><br>
@@ -301,56 +301,46 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
 const $=s=>document.querySelector(s),W=10,H=20;
 const SH=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]]];
 
-/* ─── Матовая палитра песка: терракота, глина, охра, песчаник ─── */
-const COL=[
-  '#e8c08a', // песок
-  '#c97b3a', // охра
-  '#a0522d', // глина
-  '#8a4a2b', // терракота
-  '#cc7722', // тёмная охра
-  '#b56b4a', // красно-бурый
-  '#d4a574'  // светлый песчаник
-];
-/* Тени и подсветки для матового 3D-эффекта */
-const COL_DARK=[
-  '#a8845c','#8a5220','#6e3818','#5e3018','#8a4f14','#7a4530','#9a7550'
-];
-const COL_LIGHT=[
-  '#f4d8b0','#e0a060','#c07a50','#aa6a45','#e0a050','#d09070','#e8c8a0'
-];
+/* ─── Матовая палитра песка ─── */
+const COL=['#e8c08a','#c97b3a','#a0522d','#8a4a2b','#cc7722','#b56b4a','#d4a574'];
+const COL_DARK=['#a8845c','#8a5220','#6e3818','#5e3018','#8a4f14','#7a4530','#9a7550'];
+const COL_LIGHT=['#f4d8b0','#e0a060','#c07a50','#aa6a45','#e0a050','#d09070','#e8c8a0'];
 
 /* ─── Прогресс ─── */
 let S={progress:0,music:50,sfx:70};
 try{Object.assign(S,JSON.parse(localStorage.getItem('desertTetris')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('desertTetris',JSON.stringify(S))}catch(e){}};
 
-/* ─── Уровни ─── */
+/* ─── Уровни ───
+   type: score | lines | clear | time
+   density (для clear): 0..1 — сколько блоков заранее стоит на поле
+*/
 const LEVELS=[
  {name:'Первые шаги',    type:'score',   target:500,   time:0,  desc:'Набрать 500 очков'},
  {name:'Песчаный ветер', type:'lines',   target:5,     time:0,  desc:'Собрать 5 линий'},
- {name:'Оазис',          type:'clear',   target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Занесённый храм',type:'clear',   target:0,     time:0,  density:0.35, desc:'Расчистить занесённые блоки'},
  {name:'Полуденный зной',type:'score',   target:1500,  time:0,  desc:'Набрать 1500 очков'},
  {name:'Караван',        type:'lines',   target:10,    time:0,  desc:'Собрать 10 линий'},
  {name:'Песчаная буря',  type:'time',    target:600,   time:60, desc:'600 очков за 60 секунд'},
  {name:'Дюны',           type:'score',   target:2500,  time:0,  desc:'Набрать 2500 очков'},
- {name:'Барханы',        type:'clear',   target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Погребённый город',type:'clear', target:0,     time:0,  density:0.5, desc:'Расчистить занесённые блоки'},
  {name:'Мираж',          type:'time',    target:1000,  time:75, desc:'1000 очков за 75 секунд'},
  {name:'Скорпион',       type:'lines',   target:15,    time:0,  desc:'Собрать 15 линий'},
  {name:'Закат в пустыне',type:'score',   target:4000,  time:0,  desc:'Набрать 4000 очков'},
  {name:'Пирамиды',       type:'time',    target:2000,  time:90, desc:'2000 очков за 90 секунд'},
- {name:'Оазис II',       type:'clear',   target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Гробница',       type:'clear',   target:0,     time:0,  density:0.6, desc:'Расчистить занесённые блоки'},
  {name:'Самум',          type:'lines',   target:20,    time:0,  desc:'Собрать 20 линий'},
  {name:'Фата-моргана',   type:'score',   target:6000,  time:0,  desc:'Набрать 6000 очков'},
  {name:'Ночная пустыня', type:'time',    target:2500,  time:100,desc:'2500 очков за 100 секунд'},
  {name:'Каньон',         type:'lines',   target:25,    time:0,  desc:'Собрать 25 линий'},
  {name:'Пески времени',  type:'score',   target:8000,  time:0,  desc:'Набрать 8000 очков'},
- {name:'Великая пирамида',type:'clear',  target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Великая пирамида',type:'clear',  target:0,     time:0,  density:0.7, desc:'Расчистить занесённые блоки'},
  {name:'Легенда пустыни',type:'time',    target:5000,  time:120,desc:'5000 очков за 120 секунд'}
 ];
 
 const c=$('#c'),x=c.getContext('2d'),nc=$('#nc'),nx=nc.getContext('2d');
 let grid,cur,nxt,bag,score=0,lines=0,level=0,st='menu',acc=0,cs=24,DPR=1,spr=[],sprN=[],ns=20;
-let timeLeft=0,timeTotal=0,clearedNow=0;
+let timeLeft=0,timeTotal=0;
 let curLevel=null;
 
 const bgBuf=document.createElement('canvas'),bgx=bgBuf.getContext('2d');
@@ -362,19 +352,17 @@ let sandGrains=[], ripples=[];
 function spawnSand(gx,gy,ci){
   const cx=gx*cs+cs/2, cy=gy*cs+cs/2;
   const base=COL[ci-1], dark=COL_DARK[ci-1], light=COL_LIGHT[ci-1];
-  // Много мелких песчинок — как рассыпающийся песок
   const n=14+Math.floor(Math.random()*6);
   for(let k=0;k<n;k++){
     const ang=Math.random()*Math.PI*2;
     const spd=(0.25+Math.random()*1.1)*cs*0.08;
-    // Частицы разлетаются, но с уклоном вниз (гравитация песка)
     const gRain=0.015+Math.random()*0.02;
     sandGrains.push({
       x:cx+(Math.random()-0.5)*cs*0.85,
       y:cy+(Math.random()-0.5)*cs*0.85,
       vx:Math.cos(ang)*spd,
-      vy:Math.sin(ang)*spd*0.5-cs*0.04, // лёгкий подброс вверх
-      g:gRain*cs, // гравитация
+      vy:Math.sin(ang)*spd*0.5-cs*0.04,
+      g:gRain*cs,
       r:cs*(0.035+Math.random()*0.055),
       life:1,
       decay:0.011+Math.random()*0.011,
@@ -383,7 +371,6 @@ function spawnSand(gx,gy,ci){
       vr:(Math.random()-0.5)*0.3
     });
   }
-  // Несколько крупных комков
   for(let k=0;k<3;k++){
     const ang=Math.random()*Math.PI*2;
     const spd=(0.4+Math.random()*0.7)*cs*0.08;
@@ -401,7 +388,6 @@ function spawnSand(gx,gy,ci){
       vr:(Math.random()-0.5)*0.4
     });
   }
-  // Пылевое облачко, быстрое и рассеивающееся
   for(let k=0;k<5;k++){
     const ang=Math.random()*Math.PI*2;
     const spd=(0.6+Math.random()*1.0)*cs*0.1;
@@ -438,7 +424,6 @@ function updateSand(dt){
   }
 }
 function drawSand(g){
-  // Пыль сначала (под песчинками)
   for(const p of sandGrains){
     if(!p.dust)continue;
     g.globalAlpha=p.life*0.28;
@@ -447,7 +432,6 @@ function drawSand(g){
     g.arc(p.x,p.y,p.r*(0.7+p.life*0.9),0,6.283);
     g.fill();
   }
-  // Крупные комки — квадратики с лёгким скруглением
   for(const p of sandGrains){
     if(p.dust)continue;
     g.globalAlpha=p.life;
@@ -464,12 +448,9 @@ function drawSand(g){
     }
     g.restore();
   }
-  // Пыль поверх лёгким слоем для объёма
   g.globalAlpha=1;
 }
-function spawnRipple(gy){
-  ripples.push({y:gy*cs+cs/2,life:1,r:0});
-}
+function spawnRipple(gy){ripples.push({y:gy*cs+cs/2,life:1,r:0})}
 function drawRipples(g){
   for(const r of ripples){
     const a=r.life*r.life*0.5;
@@ -528,9 +509,7 @@ function startMusic(){
   const interval=setInterval(()=>{if(S.music<=0){clearInterval(interval);musicNodes=null;return}playNote()},2000);
   musicNodes={master,interval};
 }
-function stopMusic(){
-  if(musicNodes){clearInterval(musicNodes.interval);musicNodes=null}
-}
+function stopMusic(){if(musicNodes){clearInterval(musicNodes.interval);musicNodes=null}}
 function updateMusicVol(){
   if(musicNodes&&audioCtx)musicNodes.master.gain.value=(S.music/100)*0.1;
   if(S.music>0&&!musicNodes&&st==='play')startMusic();
@@ -542,6 +521,38 @@ function pull(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){const j
 function hit(m,px,py){for(let r=0;r<m.length;r++)for(let q=0;q<m[r].length;q++)if(m[r][q]){const X=px+q,Y=py+r;if(X<0||X>=W||Y>=H||(Y>=0&&grid[Y][X]))return true}return false}
 function spawn(){const i=nxt;nxt=pull();const m=SH[i].map(r=>r.slice());cur={m,c:i+1,x:(W-m[0].length)/2|0,y:0,softDrop:0};if(hit(cur.m,cur.x,cur.y))fail()}
 
+/* ─── Генерация предзаполненного поля для clear-уровней ───
+   Блоки стоят в нижней половине, с "дырами", но не полностью хаотично.
+   Цель — игрок должен собрать линии, чтобы разбить эти блоки. */
+function generatePreFilled(density){
+ const g=Array.from({length:H},()=>Array(W).fill(0));
+ // Количество строк снизу, которые заполняем
+ const bottomRows=Math.floor(H*0.45); // максимум 9 строк
+ const rowsToFill=Math.max(2,Math.floor(bottomRows*density));
+ // Заполняем снизу вверх с "дырами"
+ for(let r=0;r<rowsToFill;r++){
+  const y=H-1-r;
+  // В каждой строке оставляем 1-2 случайные дыры, чтобы можно было чистить
+  const holes=new Set();
+  const holeCount=1+Math.floor(Math.random()*2);
+  while(holes.size<holeCount) holes.add(Math.floor(Math.random()*W));
+  for(let i=0;i<W;i++){
+   if(!holes.has(i)){
+    g[y][i]=1+Math.floor(Math.random()*COL.length);
+   }
+  }
+ }
+ // Немного одиночных блоков выше — для интереса
+ const extra=Math.floor(rowsToFill*1.5);
+ for(let k=0;k<extra;k++){
+  const y=H-1-rowsToFill-Math.floor(Math.random()*3);
+  if(y<2)continue;
+  const i=Math.floor(Math.random()*W);
+  if(!g[y][i]) g[y][i]=1+Math.floor(Math.random()*COL.length);
+ }
+ return g;
+}
+
 function lock(){
  cur.m.forEach((r,j)=>r.forEach((v,q)=>{if(v&&cur.y+j>=0)grid[cur.y+j][cur.x+q]=cur.c}));
  const full=[];
@@ -551,7 +562,7 @@ function lock(){
    spawnRipple(y);
  }
  let n=full.length;
- if(n){clearedNow+=n;sfx.clear()}
+ if(n)sfx.clear();
  grid=grid.filter(r=>!r.every(v=>v));
  while(grid.length<H)grid.unshift(Array(W).fill(0));
  gridDirty=true;
@@ -572,13 +583,14 @@ const act={
 };
 function doAct(a){if(st==='play'&&a!=='pause')act[a]();else if(a==='pause')act.pause()}
 
+/* Проверка цели */
 function checkGoal(){
  if(!curLevel)return;
  const t=curLevel.type, tg=curLevel.target;
  if(t==='score'&&score>=tg)win();
  else if(t==='lines'&&lines>=tg)win();
  else if(t==='time'&&score>=tg)win();
- else if(t==='clear'&&clearedNow>0&&grid.every(r=>r.every(v=>!v)))win();
+ else if(t==='clear'&&grid.every(r=>r.every(v=>!v)))win();
 }
 function win(){
  if(st!=='play')return;
@@ -599,8 +611,14 @@ function timeOut(){fail()}
 
 function startLevel(i){
  level=i;curLevel=LEVELS[i];
- grid=Array.from({length:H},()=>Array(W).fill(0));bag=[];
- score=0;lines=0;clearedNow=0;acc=0;
+ // Для clear-уровней — заранее заполненное поле
+ if(curLevel.type==='clear'&&curLevel.density>0){
+  grid=generatePreFilled(curLevel.density);
+ }else{
+  grid=Array.from({length:H},()=>Array(W).fill(0));
+ }
+ bag=[];
+ score=0;lines=0;acc=0;
  timeLeft=curLevel.time||0;timeTotal=curLevel.time||0;
  sandGrains.length=0;ripples.length=0;
  nxt=pull();st='play';gridDirty=true;spawn();
@@ -612,7 +630,7 @@ function nextLevel(){
  else{st='menu';show('menu')}
 }
 
-/* ─── Матовые спрайты блоков ─── */
+/* ─── Матовые спрайты ─── */
 function mkSprites(s){
  const p=Math.ceil(s*.35), z=s+p*2, out=[];
  COL.forEach((col,i)=>{
@@ -620,12 +638,10 @@ function mkSprites(s){
   o.width=o.height=Math.ceil(z*DPR);
   const g=o.getContext('2d');
   g.scale(DPR,DPR);
-  // Основа — плоский матовый квадрат с лёгким скруглением
   g.fillStyle=col;
   g.beginPath();
   g.roundRect(p+1,p+1,s-2,s-2,s*.18);
   g.fill();
-  // Лёгкая верхняя подсветка (полупрозрачный светлый слой)
   const lg=g.createLinearGradient(p,p+s*0.15,p,p+s*0.65);
   lg.addColorStop(0,'rgba(255,240,200,.28)');
   lg.addColorStop(1,'rgba(255,240,200,0)');
@@ -633,7 +649,6 @@ function mkSprites(s){
   g.beginPath();
   g.roundRect(p+1,p+1,s-2,s-2,s*.18);
   g.fill();
-  // Нижняя тень
   const dg=g.createLinearGradient(p,p+s*0.5,p,p+s);
   dg.addColorStop(0,'rgba(60,30,15,0)');
   dg.addColorStop(1,'rgba(60,30,15,.35)');
@@ -641,13 +656,11 @@ function mkSprites(s){
   g.beginPath();
   g.roundRect(p+1,p+1,s-2,s-2,s*.18);
   g.fill();
-  // Тонкая тёмная обводка для матового эффекта
   g.strokeStyle=COL_DARK[i];
   g.lineWidth=1;
   g.beginPath();
   g.roundRect(p+1.5,p+1.5,s-3,s-3,s*.18);
   g.stroke();
-  // Мелкие песчинки внутри блока (текстура песка)
   g.fillStyle='rgba(120,70,35,.25)';
   const seed=(i+1)*7;
   for(let k=0;k<6;k++){
@@ -655,7 +668,6 @@ function mkSprites(s){
    const py=p+((seed*3+k*7)%(s-6))+3;
    g.fillRect(px,py,1.5,1.5);
   }
-  // Светлые вкрапления
   g.fillStyle='rgba(255,235,200,.35)';
   for(let k=0;k<4;k++){
    const px=p+((seed*2+k*11)%(s-6))+3;
@@ -669,14 +681,11 @@ function mkSprites(s){
 }
 function put(g,sp,px,py,s,ci,a){g.globalAlpha=a;g.drawImage(sp[ci-1],px*s-sp.p,py*s-sp.p,sp.z,sp.z)}
 
-/* ─── Буферы отрисовки ─── */
 function redrawBgBuf(){
  bgx.setTransform(DPR,0,0,DPR,0,0);
  bgx.clearRect(0,0,W*cs,H*cs);
- // Фон поля — тёмный песчаник
  bgx.fillStyle='#2a1812';
  bgx.fillRect(0,0,W*cs,H*cs);
- // Сетка — тонкая, песочная, матовая
  bgx.strokeStyle='rgba(200,150,90,.08)';
  bgx.lineWidth=1;
  bgx.beginPath();
@@ -699,15 +708,10 @@ function draw(){
  x.drawImage(bgBuf,0,0,W*cs,H*cs);
  if(gridDirty){redrawLockBuf();gridDirty=false}
  x.drawImage(lockBuf,0,0,W*cs,H*cs);
- // Призрак фигуры — матовый, полупрозрачный
  if(cur&&st!=='over'&&st!=='win'){
   let gy=cur.y;while(!hit(cur.m,cur.x,gy+1))gy++;
-  for(let j=0;j<cur.m.length;j++)for(let q=0;q<cur.m[j].length;q++)if(cur.m[j][q]){
-   put(x,spr,cur.x+q,gy+j,cs,cur.c,.22);
-  }
-  for(let j=0;j<cur.m.length;j++)for(let q=0;q<cur.m[j].length;q++)if(cur.m[j][q]){
-   put(x,spr,cur.x+q,cur.y+j,cs,cur.c,1);
-  }
+  for(let j=0;j<cur.m.length;j++)for(let q=0;q<cur.m[j].length;q++)if(cur.m[j][q])put(x,spr,cur.x+q,gy+j,cs,cur.c,.22);
+  for(let j=0;j<cur.m.length;j++)for(let q=0;q<cur.m[j].length;q++)if(cur.m[j][q])put(x,spr,cur.x+q,cur.y+j,cs,cur.c,1);
  }
  x.globalAlpha=1;
  drawRipples(x);
@@ -718,9 +722,8 @@ function draw(){
  if(curLevel){
   const t=curLevel.type;
   if(t==='time'){setT('tm',Math.ceil(timeLeft));setT('tg',curLevel.target)}
-  else if(t==='score'){setT('tm','—');setT('tg',curLevel.target)}
-  else if(t==='lines'){setT('tm','—');setT('tg',curLevel.target)}
-  else{setT('tm','—');setT('tg','—')}
+  else if(t==='clear'){setT('tm','—');setT('tg','—')}
+  else{setT('tm','—');setT('tg',curLevel.target)}
  }
 }
 
@@ -731,7 +734,12 @@ function renderQuest(){
  let prog='',goalText='';
  if(t==='score'){prog=`${score} / ${curLevel.target}`;goalText='Набрать очки'}
  else if(t==='lines'){prog=`${lines} / ${curLevel.target}`;goalText='Собрать линии'}
- else if(t==='clear'){prog='Очистить всё поле';goalText='Очистить поле'}
+ else if(t==='clear'){
+   // Считаем оставшиеся блоки
+   let left=0;
+   for(let j=0;j<H;j++)for(let i=0;i<W;i++) if(grid[j][i]) left++;
+   prog=`Осталось блоков: ${left}`;goalText='Расчистить поле'
+ }
  else if(t==='time'){prog=`${score} / ${curLevel.target}`;goalText='На время'}
  q.innerHTML=`<div class="quest-box"><small>ИСПЫТАНИЕ</small><b>${goalText}</b><div class="prog">${prog}</div></div>`;
 }
@@ -778,7 +786,6 @@ function bgSize(){bg.width=bw=innerWidth>>1;bg.height=bh=innerHeight>>1}
 addEventListener('resize',bgSize);bgSize();
 
 function drawDesert(t){
- // Небо — матовый градиент заката (без блеска)
  const sky=b.createLinearGradient(0,0,0,bh*0.65);
  sky.addColorStop(0,'#4a2242');
  sky.addColorStop(0.35,'#8a3a52');
@@ -787,17 +794,14 @@ function drawDesert(t){
  sky.addColorStop(1,'#e8b060');
  b.fillStyle=sky;b.fillRect(0,0,bw,bh*0.65);
 
- // Солнце — матовый диск без свечения
  const sunY=bh*0.48+Math.sin(t*0.0003)*4;
  const sunR=bh*0.11;
  b.fillStyle='#f4d58a';
  b.beginPath();b.arc(bw*0.72,sunY,sunR,0,6.283);b.fill();
- // Лёгкое затемнение по краю (без резкого блика)
  b.strokeStyle='rgba(180,110,50,.3)';
  b.lineWidth=2;
  b.beginPath();b.arc(bw*0.72,sunY,sunR-1,0,6.283);b.stroke();
 
- // Дюны — плоские матовые слои
  const layers=[
   {y:0.58,c1:'#c97b3a',c2:'#a0522d',amp:0.035,spd:0.00020,off:0},
   {y:0.68,c1:'#a0522d',c2:'#7a3a20',amp:0.045,spd:-0.00015,off:1.7},
@@ -820,7 +824,6 @@ function drawDesert(t){
   b.lineTo(bw,bh);b.closePath();b.fill();
  }
 
- // Песчинки, летящие по ветру — матовые, тусклые
  b.fillStyle='rgba(200,160,100,.4)';
  for(let i=0;i<35;i++){
   const px=((t*0.02+i*137)%(bw+40))-20;
@@ -830,11 +833,9 @@ function drawDesert(t){
  }
  b.globalAlpha=1;
 
- // Пирамиды — плоские матовые
  function pyramid(px,py,w,h){
   b.fillStyle='rgba(70,36,22,.6)';
   b.beginPath();b.moveTo(px,py-h);b.lineTo(px-w/2,py);b.lineTo(px+w/2,py);b.closePath();b.fill();
-  // Тень на одной стороне
   b.fillStyle='rgba(40,20,12,.45)';
   b.beginPath();b.moveTo(px,py-h);b.lineTo(px+w/2,py);b.lineTo(px+w*0.15,py);b.closePath();b.fill();
  }
@@ -868,7 +869,7 @@ function renderLevels(){
   const done=i<S.progress;
   const d=document.createElement('div');
   d.className='lvl'+(unlocked?'':' locked')+(done?' done':'');
-  const typeName={score:'ОЧКИ',lines:'ЛИНИИ',clear:'ОЧИСТКА',time:'ВРЕМЯ'}[lv.type];
+  const typeName={score:'ОЧКИ',lines:'ЛИНИИ',clear:'РАСЧИСТКА',time:'ВРЕМЯ'}[lv.type];
   d.innerHTML=`<div class="num">${i+1}</div><div class="type">${typeName}</div>${done?'<div class="star">★</div>':''}`;
   d.title=lv.desc;
   if(unlocked)d.onclick=()=>startLevel(i);
