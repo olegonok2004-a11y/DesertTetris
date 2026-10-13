@@ -159,13 +159,19 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
   .cb{height:68px}
 }
 
+/* ─── ПК и планшет-горизонталь: КОМПАКТНОЕ меню ─── */
 @media (min-width:821px) and (orientation:landscape){
-  #menu{gap:min(4vmin,3vh);padding:12px 24px}
-  #menu .inf{font-size:min(48vmin,40vh)}
-  #menu h1{font-size:min(12vmin,9vh);letter-spacing:.3em}
-  #menu .sub{font-size:min(2.6vmin,2.2vh);letter-spacing:.5em}
-  #menu .btn{min-width:min(500px,60vw);padding:min(4vmin,3vh) min(7vmin,6vh);
-    font-size:min(3.4vmin,3vh);border-radius:16px}
+  #menu{gap:clamp(6px,1.2vh,14px);padding:20px}
+  #menu .inf{font-size:clamp(50px,11vmin,110px);line-height:.85}
+  #menu h1{font-size:clamp(22px,4.2vmin,40px);letter-spacing:.28em}
+  #menu .sub{font-size:clamp(9px,1.5vmin,12px);letter-spacing:.4em}
+  #menu .btn{min-width:clamp(240px,32vmin,320px);
+    padding:clamp(9px,1.6vh,14px) clamp(20px,3vmin,32px);
+    font-size:clamp(12px,1.7vmin,15px);border-radius:14px;letter-spacing:.18em}
+  #levels .levels-grid{max-width:clamp(420px,62vmin,620px);gap:clamp(8px,1.6vmin,14px)}
+  #how .how{max-width:clamp(420px,60vmin,560px);font-size:clamp(12px,1.6vmin,14px)}
+  #settings .settings{max-width:clamp(320px,46vmin,420px)}
+  h2{font-size:clamp(18px,3.6vmin,32px)}
 }
 
 @media (orientation:landscape) and (max-height:560px){
@@ -174,8 +180,10 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
   .stats{grid-template-columns:1fr 1fr;gap:6px}
   .box{padding:5px 8px}.box small{font-size:8px}.box b{font-size:17px}
   .cb{height:44px}
-  .screen{gap:8px}.inf{font-size:70px}h1{font-size:22px}.btn{padding:10px 20px;min-width:210px}
+  .screen{gap:8px}.inf{font-size:50px}h1{font-size:20px}.btn{padding:8px 18px;min-width:190px}
   .levels-grid{grid-template-columns:repeat(5,1fr);gap:8px}
+  #menu{gap:6px}
+  #menu .btn{padding:8px 18px;font-size:11px}
 }
 </style>
 </head>
@@ -301,20 +309,14 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
 const $=s=>document.querySelector(s),W=10,H=20;
 const SH=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]]];
 
-/* ─── Матовая палитра песка ─── */
 const COL=['#e8c08a','#c97b3a','#a0522d','#8a4a2b','#cc7722','#b56b4a','#d4a574'];
 const COL_DARK=['#a8845c','#8a5220','#6e3818','#5e3018','#8a4f14','#7a4530','#9a7550'];
 const COL_LIGHT=['#f4d8b0','#e0a060','#c07a50','#aa6a45','#e0a050','#d09070','#e8c8a0'];
 
-/* ─── Прогресс ─── */
 let S={progress:0,music:50,sfx:70};
 try{Object.assign(S,JSON.parse(localStorage.getItem('desertTetris')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('desertTetris',JSON.stringify(S))}catch(e){}};
 
-/* ─── Уровни ───
-   type: score | lines | clear | time
-   density (для clear): 0..1 — сколько блоков заранее стоит на поле
-*/
 const LEVELS=[
  {name:'Первые шаги',    type:'score',   target:500,   time:0,  desc:'Набрать 500 очков'},
  {name:'Песчаный ветер', type:'lines',   target:5,     time:0,  desc:'Собрать 5 линий'},
@@ -347,7 +349,6 @@ const bgBuf=document.createElement('canvas'),bgx=bgBuf.getContext('2d');
 const lockBuf=document.createElement('canvas'),lockx=lockBuf.getContext('2d');
 let gridDirty=true;
 
-/* ─── Песчаная анимация разрушения ─── */
 let sandGrains=[], ripples=[];
 function spawnSand(gx,gy,ci){
   const cx=gx*cs+cs/2, cy=gy*cs+cs/2;
@@ -462,7 +463,6 @@ function drawRipples(g){
   }
 }
 
-/* ─── Звук ─── */
 let audioCtx=null;
 function ensureAudio(){if(!audioCtx){try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}}
 function playTone(freq,dur,type='sine',vol=0.15){
@@ -515,24 +515,17 @@ function updateMusicVol(){
   if(S.music>0&&!musicNodes&&st==='play')startMusic();
 }
 
-/* ─── Логика ─── */
 const rotM=m=>m[0].map((_,i)=>m.map(r=>r[i]).reverse());
 function pull(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){const j=Math.random()*(i+1)|0;[bag[i],bag[j]]=[bag[j],bag[i]]}}return bag.pop()}
 function hit(m,px,py){for(let r=0;r<m.length;r++)for(let q=0;q<m[r].length;q++)if(m[r][q]){const X=px+q,Y=py+r;if(X<0||X>=W||Y>=H||(Y>=0&&grid[Y][X]))return true}return false}
 function spawn(){const i=nxt;nxt=pull();const m=SH[i].map(r=>r.slice());cur={m,c:i+1,x:(W-m[0].length)/2|0,y:0,softDrop:0};if(hit(cur.m,cur.x,cur.y))fail()}
 
-/* ─── Генерация предзаполненного поля для clear-уровней ───
-   Блоки стоят в нижней половине, с "дырами", но не полностью хаотично.
-   Цель — игрок должен собрать линии, чтобы разбить эти блоки. */
 function generatePreFilled(density){
  const g=Array.from({length:H},()=>Array(W).fill(0));
- // Количество строк снизу, которые заполняем
- const bottomRows=Math.floor(H*0.45); // максимум 9 строк
+ const bottomRows=Math.floor(H*0.45);
  const rowsToFill=Math.max(2,Math.floor(bottomRows*density));
- // Заполняем снизу вверх с "дырами"
  for(let r=0;r<rowsToFill;r++){
   const y=H-1-r;
-  // В каждой строке оставляем 1-2 случайные дыры, чтобы можно было чистить
   const holes=new Set();
   const holeCount=1+Math.floor(Math.random()*2);
   while(holes.size<holeCount) holes.add(Math.floor(Math.random()*W));
@@ -542,7 +535,6 @@ function generatePreFilled(density){
    }
   }
  }
- // Немного одиночных блоков выше — для интереса
  const extra=Math.floor(rowsToFill*1.5);
  for(let k=0;k<extra;k++){
   const y=H-1-rowsToFill-Math.floor(Math.random()*3);
@@ -583,7 +575,6 @@ const act={
 };
 function doAct(a){if(st==='play'&&a!=='pause')act[a]();else if(a==='pause')act.pause()}
 
-/* Проверка цели */
 function checkGoal(){
  if(!curLevel)return;
  const t=curLevel.type, tg=curLevel.target;
@@ -611,7 +602,6 @@ function timeOut(){fail()}
 
 function startLevel(i){
  level=i;curLevel=LEVELS[i];
- // Для clear-уровней — заранее заполненное поле
  if(curLevel.type==='clear'&&curLevel.density>0){
   grid=generatePreFilled(curLevel.density);
  }else{
@@ -630,7 +620,6 @@ function nextLevel(){
  else{st='menu';show('menu')}
 }
 
-/* ─── Матовые спрайты ─── */
 function mkSprites(s){
  const p=Math.ceil(s*.35), z=s+p*2, out=[];
  COL.forEach((col,i)=>{
@@ -735,7 +724,6 @@ function renderQuest(){
  if(t==='score'){prog=`${score} / ${curLevel.target}`;goalText='Набрать очки'}
  else if(t==='lines'){prog=`${lines} / ${curLevel.target}`;goalText='Собрать линии'}
  else if(t==='clear'){
-   // Считаем оставшиеся блоки
    let left=0;
    for(let j=0;j<H;j++)for(let i=0;i<W;i++) if(grid[j][i]) left++;
    prog=`Осталось блоков: ${left}`;goalText='Расчистить поле'
@@ -780,7 +768,6 @@ function fit(){
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,80)});
 addEventListener('orientationchange',()=>setTimeout(fit,150));
 
-/* ─── Фон-пустыня ─── */
 const bg=$('#bg'),b=bg.getContext('2d');let bw=0,bh=0,bgT=0;
 function bgSize(){bg.width=bw=innerWidth>>1;bg.height=bh=innerHeight>>1}
 addEventListener('resize',bgSize);bgSize();
@@ -844,7 +831,6 @@ function drawDesert(t){
  pyramid(bw*0.88,bh*0.62,bw*0.11,bh*0.14);
 }
 
-/* ─── Цикл ─── */
 let last=0;
 function loop(t){
  const dt=Math.min(.1,(t-last)/1000||0);last=t;
