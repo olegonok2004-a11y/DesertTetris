@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>∞ Desert Tetris</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sand1:#f4c97a;--sand2:#e8a34e;--sand3:#c97b3a;--sand4:#8a4a2b;
+  --clay:#a0522d;--ochre:#cc7722;
+  --bg:#1a0e1f;
+  --pn:rgba(48,26,22,.85);--pn2:rgba(58,32,26,.9);
+  --ln:rgba(244,201,122,.25);
+  --c1:#e8c08a;--c2:#c97b3a;--c3:#d4823a;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:#e8d5b7;
+  font-family:'Orbitron',system-ui,'Segoe UI',sans-serif}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+#game{position:relative;z-index:1;height:100%;display:flex;justify-content:center;align-items:center;
+  padding:calc(10px + var(--safe-t)) calc(10px + var(--safe-r)) calc(10px + var(--safe-b)) calc(10px + var(--safe-l))}
+#main{position:relative;display:flex;flex-direction:column;gap:10px;width:var(--mw,60vmin)}
+#side{position:absolute;right:100%;top:0;margin-right:16px;width:clamp(150px,16vw,220px);
+  display:flex;flex-direction:column;gap:10px}
+#sideR{position:absolute;left:100%;top:0;margin-left:16px;width:clamp(150px,16vw,220px);
+  display:none;flex-direction:column;gap:10px}
+.stats{display:grid;gap:8px}
+.nx{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px}
+#bw{display:flex;justify-content:center;flex:none}
+#quest{display:grid;gap:8px}
+.quest-box{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:12px 14px;
+  text-align:center}
+.quest-box small{display:block;font-size:10px;letter-spacing:.2em;color:#b8946a;text-align:center;margin-bottom:4px}
+.quest-box b{font-size:clamp(13px,1.4vw,16px);color:var(--c1);line-height:1.3;text-align:center;display:block}
+.quest-box .prog{font-size:11px;color:var(--c3);margin-top:3px}
+.ctrl{display:none;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:10px}
+.box,.nx,.cb,.quest-box{background:var(--pn);border:1px solid var(--ln);border-radius:14px}
+.box{padding:10px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.box small,.nx small{display:block;font-size:11px;letter-spacing:.2em;color:#b8946a;text-align:center}
+.box b{font-size:clamp(20px,2.4vw,28px);color:var(--c1);line-height:1.1;text-align:center}
+canvas#c{border-radius:12px;border:1px solid var(--c2);background:#241512;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.6)}
+.cb{height:64px;color:var(--c1);font:700 26px 'Orbitron',sans-serif;display:flex;align-items:center;
+  justify-content:center;transition:transform .08s,background .12s;background:var(--pn2)}
+.cb:active{background:rgba(200,150,90,.35);transform:scale(.95)}
+
+.screen{position:fixed;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;text-align:center;
+  padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+  background:rgba(26,14,15,.94);overflow-y:auto}
+.screen.show{display:flex}
+.inf{font-size:clamp(90px,24vmin,200px);line-height:.9;font-weight:900;
+  background:linear-gradient(180deg,#f4c97a,#c97b3a,#8a4a2b);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+h1{margin:0;font-size:clamp(28px,6vmin,52px);letter-spacing:.25em;font-weight:900;
+  color:#e8c08a;text-shadow:2px 2px 0 rgba(90,46,26,.6)}
+h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1)}
+.sub{color:#b8946a;font-size:12px;letter-spacing:.3em}
+.btn{min-width:250px;padding:16px 28px;font:700 16px 'Orbitron',sans-serif;letter-spacing:.2em;
+  color:#f5e6d3;cursor:pointer;border-radius:12px;border:1px solid var(--c2);
+  background:linear-gradient(180deg,#5a3222,#3a2018);
+  box-shadow:inset 0 1px 0 rgba(244,201,122,.15),0 2px 6px rgba(0,0,0,.4);
+  transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px);background:linear-gradient(180deg,#6a3d28,#452620)}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn.alt{border-color:var(--ln);background:transparent;color:#d4b088}
+.btn.alt:hover{background:rgba(200,150,90,.1)}
+.btn.small{min-width:auto;padding:10px 20px;font-size:13px}
+.meta{color:var(--c3);font-size:13px;letter-spacing:.1em}
+.how{max-width:520px;font-size:14px;line-height:1.7;color:#e8d5b7;font-family:system-ui,sans-serif;text-align:left}
+.how b{color:var(--c1)}
+.how ul{padding-left:18px;margin:6px 0}
+.how li{margin:4px 0}
+
+.levels-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:520px;width:100%;margin:10px 0}
+.lvl{aspect-ratio:1;border-radius:12px;border:1px solid var(--ln);background:var(--pn);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .2s;position:relative;padding:6px}
+.lvl:not(.locked):hover{border-color:var(--c2);transform:translateY(-2px);background:var(--pn2)}
+.lvl.locked{opacity:.3;cursor:not-allowed}
+.lvl.done{border-color:var(--c2);background:rgba(200,150,90,.15)}
+.lvl .num{font-size:clamp(18px,3vw,26px);font-weight:900;color:var(--c1);line-height:1}
+.lvl .type{font-size:9px;color:#b8946a;letter-spacing:.1em;margin-top:3px;text-align:center;line-height:1.2}
+.lvl .star{position:absolute;top:4px;right:6px;font-size:14px;color:var(--c3)}
+
+.settings{display:flex;flex-direction:column;gap:16px;max-width:420px;width:100%}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:12px 16px}
+.setting-row label{font-size:13px;letter-spacing:.1em;color:var(--c1)}
+.slider{flex:1;max-width:160px;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;
+  background:rgba(200,150,90,.25);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#c97b3a;cursor:pointer;border:1px solid #8a4a2b}
+.slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#c97b3a;
+  cursor:pointer;border:1px solid #8a4a2b}
+.setting-row .val{font-size:12px;color:var(--c3);min-width:36px;text-align:right}
+
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);z-index:30;
+  background:rgba(58,32,26,.96);border:1px solid var(--c2);border-radius:14px;padding:20px 32px;
+  font-size:clamp(16px,3vw,22px);font-weight:700;letter-spacing:.1em;color:var(--c1);
+  text-align:center;pointer-events:none;opacity:0;transition:all .3s;
+  box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+#rotate{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:18px;text-align:center;padding:24px;background:rgba(26,14,15,.96)}
+#rotate .ic{font-size:64px;animation:rot 2s ease-in-out infinite}
+@keyframes rot{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
+#rotate b{font-size:18px;letter-spacing:.15em;color:var(--c1)}
+
+@media (hover:none) and (pointer:coarse){.ctrl{display:grid}}
+
+@media (hover:none) and (pointer:coarse) and (max-width:820px){
+  #game{padding:calc(8px + var(--safe-t)) calc(8px + var(--safe-r)) calc(8px + var(--safe-b)) calc(8px + var(--safe-l))}
+  #main{gap:14px;width:100%;max-width:520px}
+  #side{position:static;margin:0;width:100%;flex-direction:row;align-items:stretch;gap:6px}
+  .stats{flex:1;grid-template-columns:repeat(3,1fr);gap:6px}
+  .stats .box:nth-child(4){display:none}
+  #quest{margin:0}
+  .quest-box{padding:8px 10px}
+  .quest-box b{font-size:12px}
+  .nx{flex-direction:row;padding:6px 10px;gap:6px}
+  .nx small{display:none}
+  .nx canvas{width:38px !important;height:38px !important}
+  .box{padding:6px 8px;border-radius:10px}
+  .box small{font-size:9px;letter-spacing:.08em}
+  .box b{font-size:clamp(16px,4.6vw,22px)}
+  .ctrl{gap:16px;margin-top:14px}
+  .cb{height:66px;border-radius:12px;font-size:26px}
+  .levels-grid{grid-template-columns:repeat(4,1fr);gap:10px}
+}
+
+@media (hover:none) and (pointer:coarse) and (max-width:820px) and (orientation:landscape){
+  #game,#side,#sideR,.screen{display:none !important}
+  #rotate{display:flex}
+}
+
+@media (hover:none) and (pointer:coarse) and (min-width:821px) and (orientation:landscape){
+  #side{position:absolute;right:100%;margin-right:16px;width:clamp(140px,14vw,190px);flex-direction:column}
+  #sideR{display:flex;position:absolute;left:100%;margin-left:16px;width:clamp(140px,14vw,190px)}
+  #sideR .ctrl{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:0}
+  #sideR .cb{height:clamp(48px,6.5vw,64px);font-size:clamp(20px,2.6vw,26px)}
+  #main{width:var(--mw,60vmin)}
+  #main > .ctrl{display:none !important}
+}
+
+@media (hover:none) and (pointer:coarse) and (min-width:821px) and (orientation:portrait){
+  #side{position:static;margin:0;width:100%;flex-direction:row;align-items:stretch;gap:8px}
+  .stats{flex:1;grid-template-columns:repeat(4,1fr);gap:8px}
+  .nx{flex-direction:row;padding:6px 12px;gap:8px}
+  .nx small{display:none}
+  .ctrl{gap:16px;margin-top:14px}
+  .cb{height:68px}
+}
+
+@media (min-width:821px) and (orientation:landscape){
+  #menu{gap:min(4vmin,3vh);padding:12px 24px}
+  #menu .inf{font-size:min(48vmin,40vh)}
+  #menu h1{font-size:min(12vmin,9vh);letter-spacing:.3em}
+  #menu .sub{font-size:min(2.6vmin,2.2vh);letter-spacing:.5em}
+  #menu .btn{min-width:min(500px,60vw);padding:min(4vmin,3vh) min(7vmin,6vh);
+    font-size:min(3.4vmin,3vh);border-radius:16px}
+}
+
+@media (orientation:landscape) and (max-height:560px){
+  #game{padding:6px}
+  #side{gap:6px}.nx{display:none}
+  .stats{grid-template-columns:1fr 1fr;gap:6px}
+  .box{padding:5px 8px}.box small{font-size:8px}.box b{font-size:17px}
+  .cb{height:44px}
+  .screen{gap:8px}.inf{font-size:70px}h1{font-size:22px}.btn{padding:10px 20px;min-width:210px}
+  .levels-grid{grid-template-columns:repeat(5,1fr);gap:8px}
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="game">
+ <div id="main">
+  <aside id="side">
+   <div class="stats">
+    <div class="box"><small>ОЧКИ</small><b id="sc">0</b></div>
+    <div class="box"><small>ЦЕЛЬ</small><b id="tg">0</b></div>
+    <div class="box"><small>ЛИНИИ</small><b id="li">0</b></div>
+    <div class="box"><small>ВРЕМЯ</small><b id="tm">0</b></div>
+   </div>
+   <div id="quest"></div>
+   <div class="nx"><small>ДАЛЕЕ</small><canvas id="nc"></canvas></div>
+  </aside>
+  <div id="bw"><canvas id="c"></canvas></div>
+  <div class="ctrl" id="ctrlMain">
+   <button class="cb" data-a="rot">⟳</button>
+   <button class="cb" data-a="hard">⤓</button>
+   <button class="cb" data-a="pause">❚❚</button>
+   <button class="cb" data-a="left" data-r="1">◀</button>
+   <button class="cb" data-a="down" data-r="1">▼</button>
+   <button class="cb" data-a="right" data-r="1">▶</button>
+  </div>
+ </div>
+ <aside id="sideR">
+   <div class="ctrl">
+     <button class="cb" data-a="rot">⟳</button>
+     <button class="cb" data-a="hard">⤓</button>
+     <button class="cb" data-a="pause">❚❚</button>
+     <button class="cb" data-a="left" data-r="1">◀</button>
+     <button class="cb" data-a="down" data-r="1">▼</button>
+     <button class="cb" data-a="right" data-r="1">▶</button>
+   </div>
+ </aside>
+</div>
+
+<div id="rotate">
+  <div class="ic">📱</div>
+  <b>ПОВЕРНИТЕ УСТРОЙСТВО</b>
+  <div class="sub">Desert Tetris играется вертикально</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="screen show" id="menu">
+ <div class="inf">☀</div>
+ <h1>DESERT</h1><div class="sub">TETRIS · ПУТЬ ЧЕРЕЗ ПУСТЫНЮ</div>
+ <button class="btn" id="bPlay">ИГРАТЬ</button>
+ <button class="btn alt" id="bLevels">УРОВНИ</button>
+ <button class="btn alt" id="bSettings">НАСТРОЙКИ</button>
+ <button class="btn alt" id="bHow">КАК ИГРАТЬ</button>
+</div>
+
+<div class="screen" id="levels">
+ <h2>УРОВНИ</h2>
+ <div class="levels-grid" id="lvlGrid"></div>
+ <button class="btn small" id="bLevelsBack">НАЗАД</button>
+</div>
+
+<div class="screen" id="settings">
+ <h2>НАСТРОЙКИ</h2>
+ <div class="settings">
+  <div class="setting-row">
+   <label>МУЗЫКА</label>
+   <input type="range" class="slider" id="musicSlider" min="0" max="100" value="50">
+   <span class="val" id="musicVal">50</span>
+  </div>
+  <div class="setting-row">
+   <label>ЗВУКИ</label>
+   <input type="range" class="slider" id="sfxSlider" min="0" max="100" value="70">
+   <span class="val" id="sfxVal">70</span>
+  </div>
+  <button class="btn alt" id="bReset" style="margin-top:10px">СБРОСИТЬ ПРОГРЕСС</button>
+ </div>
+ <button class="btn small" id="bSettingsBack" style="margin-top:20px">НАЗАД</button>
+</div>
+
+<div class="screen" id="how">
+ <h2>КАК ИГРАТЬ</h2>
+ <div class="how">
+  <b>Цель:</b> пройти 20 уровней пустыни, выполняя уникальные испытания на каждом.<br><br>
+  <b>Типы испытаний:</b>
+  <ul>
+   <li><b>Очки</b> — набрать определённое количество очков.</li>
+   <li><b>Линии</b> — собрать заданное число линий.</li>
+   <li><b>Очистить поле</b> — убрать все блоки с поля.</li>
+   <li><b>На время</b> — успеть выполнить задачу до конца таймера.</li>
+  </ul>
+  <b>Управление (ПК / планшет гориз.):</b><br>
+  ← → движение · ↑ / X поворот · ↓ ускорение · Пробел — сброс · P — пауза<br><br>
+  <b>Телефон / планшет верт.:</b> экранные кнопки под полем.
+ </div>
+ <button class="btn small" id="bHowBack">НАЗАД</button>
+</div>
+
+<div class="screen" id="pause">
+ <h2>ПАУЗА</h2>
+ <button class="btn" id="bRes">ПРОДОЛЖИТЬ</button>
+ <button class="btn alt" id="bRestart">ЗАНОВО</button>
+ <button class="btn alt" id="bMenu1">В МЕНЮ</button>
+</div>
+
+<div class="screen" id="win">
+ <div class="inf" style="font-size:90px">🏆</div>
+ <h2>УРОВЕНЬ ПРОЙДЕН!</h2>
+ <div class="meta" id="winMeta"></div>
+ <button class="btn" id="bNext">СЛЕДУЮЩИЙ УРОВЕНЬ</button>
+ <button class="btn alt" id="bMenuWin">В МЕНЮ</button>
+</div>
+
+<div class="screen" id="over">
+ <div class="inf" style="font-size:90px">☠</div>
+ <h2>ИСПЫТАНИЕ ПРОВАЛЕНО</h2>
+ <div class="meta" id="oMeta"></div>
+ <button class="btn" id="bAgain">ЕЩЁ РАЗ</button>
+ <button class="btn alt" id="bMenu2">В МЕНЮ</button>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),W=10,H=20;
+const SH=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]]];
+
+/* ─── Матовая палитра песка: терракота, глина, охра, песчаник ─── */
+const COL=[
+  '#e8c08a', // песок
+  '#c97b3a', // охра
+  '#a0522d', // глина
+  '#8a4a2b', // терракота
+  '#cc7722', // тёмная охра
+  '#b56b4a', // красно-бурый
+  '#d4a574'  // светлый песчаник
+];
+/* Тени и подсветки для матового 3D-эффекта */
+const COL_DARK=[
+  '#a8845c','#8a5220','#6e3818','#5e3018','#8a4f14','#7a4530','#9a7550'
+];
+const COL_LIGHT=[
+  '#f4d8b0','#e0a060','#c07a50','#aa6a45','#e0a050','#d09070','#e8c8a0'
+];
+
+/* ─── Прогресс ─── */
+let S={progress:0,music:50,sfx:70};
+try{Object.assign(S,JSON.parse(localStorage.getItem('desertTetris')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('desertTetris',JSON.stringify(S))}catch(e){}};
+
+/* ─── Уровни ─── */
+const LEVELS=[
+ {name:'Первые шаги',    type:'score',   target:500,   time:0,  desc:'Набрать 500 очков'},
+ {name:'Песчаный ветер', type:'lines',   target:5,     time:0,  desc:'Собрать 5 линий'},
+ {name:'Оазис',          type:'clear',   target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Полуденный зной',type:'score',   target:1500,  time:0,  desc:'Набрать 1500 очков'},
+ {name:'Караван',        type:'lines',   target:10,    time:0,  desc:'Собрать 10 линий'},
+ {name:'Песчаная буря',  type:'time',    target:600,   time:60, desc:'600 очков за 60 секунд'},
+ {name:'Дюны',           type:'score',   target:2500,  time:0,  desc:'Набрать 2500 очков'},
+ {name:'Барханы',        type:'clear',   target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Мираж',          type:'time',    target:1000,  time:75, desc:'1000 очков за 75 секунд'},
+ {name:'Скорпион',       type:'lines',   target:15,    time:0,  desc:'Собрать 15 линий'},
+ {name:'Закат в пустыне',type:'score',   target:4000,  time:0,  desc:'Набрать 4000 очков'},
+ {name:'Пирамиды',       type:'time',    target:2000,  time:90, desc:'2000 очков за 90 секунд'},
+ {name:'Оазис II',       type:'clear',   target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Самум',          type:'lines',   target:20,    time:0,  desc:'Собрать 20 линий'},
+ {name:'Фата-моргана',   type:'score',   target:6000,  time:0,  desc:'Набрать 6000 очков'},
+ {name:'Ночная пустыня', type:'time',    target:2500,  time:100,desc:'2500 очков за 100 секунд'},
+ {name:'Каньон',         type:'lines',   target:25,    time:0,  desc:'Собрать 25 линий'},
+ {name:'Пески времени',  type:'score',   target:8000,  time:0,  desc:'Набрать 8000 очков'},
+ {name:'Великая пирамида',type:'clear',  target:0,     time:0,  desc:'Очистить поле полностью'},
+ {name:'Легенда пустыни',type:'time',    target:5000,  time:120,desc:'5000 очков за 120 секунд'}
+];
+
+const c=$('#c'),x=c.getContext('2d'),nc=$('#nc'),nx=nc.getContext('2d');
+let grid,cur,nxt,bag,score=0,lines=0,level=0,st='menu',acc=0,cs=24,DPR=1,spr=[],sprN=[],ns=20;
+let timeLeft=0,timeTotal=0,clearedNow=0;
+let curLevel=null;
+
+const bgBuf=document.createElement('canvas'),bgx=bgBuf.getContext('2d');
+const lockBuf=document.createElement('canvas'),lockx=lockBuf.getContext('2d');
+let gridDirty=true;
+
+/* ─── Песчаная анимация разрушения ─── */
+let sandGrains=[], ripples=[];
+function spawnSand(gx,gy,ci){
+  const cx=gx*cs+cs/2, cy=gy*cs+cs/2;
+  const base=COL[ci-1], dark=COL_DARK[ci-1], light=COL_LIGHT[ci-1];
+  // Много мелких песчинок — как рассыпающийся песок
+  const n=14+Math.floor(Math.random()*6);
+  for(let k=0;k<n;k++){
+    const ang=Math.random()*Math.PI*2;
+    const spd=(0.25+Math.random()*1.1)*cs*0.08;
+    // Частицы разлетаются, но с уклоном вниз (гравитация песка)
+    const gRain=0.015+Math.random()*0.02;
+    sandGrains.push({
+      x:cx+(Math.random()-0.5)*cs*0.85,
+      y:cy+(Math.random()-0.5)*cs*0.85,
+      vx:Math.cos(ang)*spd,
+      vy:Math.sin(ang)*spd*0.5-cs*0.04, // лёгкий подброс вверх
+      g:gRain*cs, // гравитация
+      r:cs*(0.035+Math.random()*0.055),
+      life:1,
+      decay:0.011+Math.random()*0.011,
+      c:Math.random()<0.3?light:(Math.random()<0.5?dark:base),
+      rot:Math.random()*Math.PI,
+      vr:(Math.random()-0.5)*0.3
+    });
+  }
+  // Несколько крупных комков
+  for(let k=0;k<3;k++){
+    const ang=Math.random()*Math.PI*2;
+    const spd=(0.4+Math.random()*0.7)*cs*0.08;
+    sandGrains.push({
+      x:cx+(Math.random()-0.5)*cs*0.5,
+      y:cy+(Math.random()-0.5)*cs*0.5,
+      vx:Math.cos(ang)*spd,
+      vy:Math.sin(ang)*spd*0.4-cs*0.05,
+      g:0.025*cs,
+      r:cs*(0.09+Math.random()*0.06),
+      life:1,
+      decay:0.014+Math.random()*0.01,
+      c:Math.random()<0.5?dark:base,
+      rot:Math.random()*Math.PI,
+      vr:(Math.random()-0.5)*0.4
+    });
+  }
+  // Пылевое облачко, быстрое и рассеивающееся
+  for(let k=0;k<5;k++){
+    const ang=Math.random()*Math.PI*2;
+    const spd=(0.6+Math.random()*1.0)*cs*0.1;
+    sandGrains.push({
+      x:cx, y:cy,
+      vx:Math.cos(ang)*spd,
+      vy:Math.sin(ang)*spd*0.4-cs*0.03,
+      g:0.005*cs,
+      r:cs*(0.14+Math.random()*0.1),
+      life:1,
+      decay:0.03+Math.random()*0.02,
+      c:light,
+      rot:0, vr:0,
+      dust:true
+    });
+  }
+}
+function updateSand(dt){
+  const f=Math.min(3,dt*60);
+  for(let i=sandGrains.length-1;i>=0;i--){
+    const p=sandGrains[i];
+    p.x+=p.vx*f;
+    p.y+=p.vy*f;
+    p.vy+=p.g*f;
+    p.vx*=Math.pow(0.97,f);
+    p.rot+=p.vr*f;
+    p.life-=p.decay*f;
+    if(p.life<=0||p.y>H*cs+cs*3)sandGrains.splice(i,1);
+  }
+  for(let i=ripples.length-1;i>=0;i--){
+    ripples[i].life-=0.05*f;
+    ripples[i].r+=1.8*f;
+    if(ripples[i].life<=0)ripples.splice(i,1);
+  }
+}
+function drawSand(g){
+  // Пыль сначала (под песчинками)
+  for(const p of sandGrains){
+    if(!p.dust)continue;
+    g.globalAlpha=p.life*0.28;
+    g.fillStyle=p.c;
+    g.beginPath();
+    g.arc(p.x,p.y,p.r*(0.7+p.life*0.9),0,6.283);
+    g.fill();
+  }
+  // Крупные комки — квадратики с лёгким скруглением
+  for(const p of sandGrains){
+    if(p.dust)continue;
+    g.globalAlpha=p.life;
+    g.save();
+    g.translate(p.x,p.y);
+    g.rotate(p.rot);
+    g.fillStyle=p.c;
+    if(p.r>cs*0.07){
+      g.beginPath();
+      g.roundRect(-p.r,-p.r,p.r*2,p.r*2,p.r*0.6);
+      g.fill();
+    }else{
+      g.fillRect(-p.r,-p.r,p.r*2,p.r*2);
+    }
+    g.restore();
+  }
+  // Пыль поверх лёгким слоем для объёма
+  g.globalAlpha=1;
+}
+function spawnRipple(gy){
+  ripples.push({y:gy*cs+cs/2,life:1,r:0});
+}
+function drawRipples(g){
+  for(const r of ripples){
+    const a=r.life*r.life*0.5;
+    g.strokeStyle=`rgba(244,201,122,${a})`;
+    g.lineWidth=2;
+    g.beginPath();
+    g.ellipse(W*cs/2,r.y,r.r*cs*0.6,r.r*cs*0.15,0,0,6.283);
+    g.stroke();
+  }
+}
+
+/* ─── Звук ─── */
+let audioCtx=null;
+function ensureAudio(){if(!audioCtx){try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}}
+function playTone(freq,dur,type='sine',vol=0.15){
+  if(!audioCtx||S.sfx<=0)return;
+  const v=vol*(S.sfx/100);
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.connect(g);g.connect(audioCtx.destination);
+  o.start();o.stop(audioCtx.currentTime+dur);
+}
+const sfx={
+  move:()=>playTone(180,0.04,'triangle',0.05),
+  rot:()=>playTone(260,0.05,'triangle',0.06),
+  drop:()=>playTone(120,0.1,'sine',0.08),
+  clear:()=>{playTone(440,0.12,'triangle',0.1);setTimeout(()=>playTone(550,0.14,'triangle',0.1),60)},
+  win:()=>{[440,550,660,880].forEach((f,i)=>setTimeout(()=>playTone(f,0.2,'triangle',0.13),i*130))},
+  lose:()=>{[330,280,220].forEach((f,i)=>setTimeout(()=>playTone(f,0.3,'sawtooth',0.1),i*180))},
+  level:()=>{playTone(380,0.1,'triangle',0.09);setTimeout(()=>playTone(560,0.15,'triangle',0.09),100)}
+};
+
+let musicNodes=null;
+function startMusic(){
+  ensureAudio();
+  if(!audioCtx||musicNodes)return;
+  const master=audioCtx.createGain();
+  master.gain.value=(S.music/100)*0.1;
+  master.connect(audioCtx.destination);
+  const notes=[196,233,262,311,262,233];
+  let idx=0;
+  const playNote=()=>{
+    if(!audioCtx||S.music<=0)return;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=notes[idx%notes.length];
+    g.gain.setValueAtTime(0.001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.35,audioCtx.currentTime+0.15);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+2);
+    o.connect(g);g.connect(master);
+    o.start();o.stop(audioCtx.currentTime+2.2);
+    idx++;
+  };
+  playNote();
+  const interval=setInterval(()=>{if(S.music<=0){clearInterval(interval);musicNodes=null;return}playNote()},2000);
+  musicNodes={master,interval};
+}
+function stopMusic(){
+  if(musicNodes){clearInterval(musicNodes.interval);musicNodes=null}
+}
+function updateMusicVol(){
+  if(musicNodes&&audioCtx)musicNodes.master.gain.value=(S.music/100)*0.1;
+  if(S.music>0&&!musicNodes&&st==='play')startMusic();
+}
+
+/* ─── Логика ─── */
+const rotM=m=>m[0].map((_,i)=>m.map(r=>r[i]).reverse());
+function pull(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){const j=Math.random()*(i+1)|0;[bag[i],bag[j]]=[bag[j],bag[i]]}}return bag.pop()}
+function hit(m,px,py){for(let r=0;r<m.length;r++)for(let q=0;q<m[r].length;q++)if(m[r][q]){const X=px+q,Y=py+r;if(X<0||X>=W||Y>=H||(Y>=0&&grid[Y][X]))return true}return false}
+function spawn(){const i=nxt;nxt=pull();const m=SH[i].map(r=>r.slice());cur={m,c:i+1,x:(W-m[0].length)/2|0,y:0,softDrop:0};if(hit(cur.m,cur.x,cur.y))fail()}
+
+function lock(){
+ cur.m.forEach((r,j)=>r.forEach((v,q)=>{if(v&&cur.y+j>=0)grid[cur.y+j][cur.x+q]=cur.c}));
+ const full=[];
+ for(let y=0;y<H;y++) if(grid[y].every(v=>v)) full.push(y);
+ for(const y of full){
+   for(let i=0;i<W;i++){const v=grid[y][i];if(v)spawnSand(i,y,v)}
+   spawnRipple(y);
+ }
+ let n=full.length;
+ if(n){clearedNow+=n;sfx.clear()}
+ grid=grid.filter(r=>!r.every(v=>v));
+ while(grid.length<H)grid.unshift(Array(W).fill(0));
+ gridDirty=true;
+ if(n){lines+=n;score+=[0,100,300,500,800][n]}
+ sfx.drop();
+ save();acc=0;
+ checkGoal();
+ if(st==='play')spawn();
+}
+
+const act={
+ left(){if(!hit(cur.m,cur.x-1,cur.y)){cur.x--;sfx.move()}},
+ right(){if(!hit(cur.m,cur.x+1,cur.y)){cur.x++;sfx.move()}},
+ down(){if(!hit(cur.m,cur.x,cur.y+1)){cur.y++;cur.softDrop++;acc=0}},
+ rot(){const m=rotM(cur.m);for(const d of[0,-1,1,-2,2])if(!hit(m,cur.x+d,cur.y)){cur.m=m;cur.x+=d;sfx.rot();return}},
+ hard(){let d=0;while(!hit(cur.m,cur.x,cur.y+1)){cur.y++;d++}cur.softDrop+=d;lock()},
+ pause(){if(st==='play'){st='pause';show('pause');stopMusic()}else if(st==='pause'){st='play';show();startMusic()}}
+};
+function doAct(a){if(st==='play'&&a!=='pause')act[a]();else if(a==='pause')act.pause()}
+
+function checkGoal(){
+ if(!curLevel)return;
+ const t=curLevel.type, tg=curLevel.target;
+ if(t==='score'&&score>=tg)win();
+ else if(t==='lines'&&lines>=tg)win();
+ else if(t==='time'&&score>=tg)win();
+ else if(t==='clear'&&clearedNow>0&&grid.every(r=>r.every(v=>!v)))win();
+}
+function win(){
+ if(st!=='play')return;
+ st='win';stopMusic();sfx.win();
+ if(level>=S.progress)S.progress=Math.min(level+1,LEVELS.length);
+ save();
+ $('#winMeta').innerHTML=`Уровень ${level+1}: ${curLevel.name}<br>Очки: ${score} · Линии: ${lines}`;
+ $('#bNext').style.display=level+1<LEVELS.length?'block':'none';
+ show('win');
+}
+function fail(){
+ if(st!=='play'&&st!=='pause')return;
+ st='over';stopMusic();sfx.lose();
+ $('#oMeta').innerHTML=`Уровень ${level+1}: ${curLevel.name}<br>Очки: ${score} · Линии: ${lines}`;
+ show('over');
+}
+function timeOut(){fail()}
+
+function startLevel(i){
+ level=i;curLevel=LEVELS[i];
+ grid=Array.from({length:H},()=>Array(W).fill(0));bag=[];
+ score=0;lines=0;clearedNow=0;acc=0;
+ timeLeft=curLevel.time||0;timeTotal=curLevel.time||0;
+ sandGrains.length=0;ripples.length=0;
+ nxt=pull();st='play';gridDirty=true;spawn();
+ show();fit();
+ if(S.music>0)startMusic();
+}
+function nextLevel(){
+ if(level+1<LEVELS.length)startLevel(level+1);
+ else{st='menu';show('menu')}
+}
+
+/* ─── Матовые спрайты блоков ─── */
+function mkSprites(s){
+ const p=Math.ceil(s*.35), z=s+p*2, out=[];
+ COL.forEach((col,i)=>{
+  const o=document.createElement('canvas');
+  o.width=o.height=Math.ceil(z*DPR);
+  const g=o.getContext('2d');
+  g.scale(DPR,DPR);
+  // Основа — плоский матовый квадрат с лёгким скруглением
+  g.fillStyle=col;
+  g.beginPath();
+  g.roundRect(p+1,p+1,s-2,s-2,s*.18);
+  g.fill();
+  // Лёгкая верхняя подсветка (полупрозрачный светлый слой)
+  const lg=g.createLinearGradient(p,p+s*0.15,p,p+s*0.65);
+  lg.addColorStop(0,'rgba(255,240,200,.28)');
+  lg.addColorStop(1,'rgba(255,240,200,0)');
+  g.fillStyle=lg;
+  g.beginPath();
+  g.roundRect(p+1,p+1,s-2,s-2,s*.18);
+  g.fill();
+  // Нижняя тень
+  const dg=g.createLinearGradient(p,p+s*0.5,p,p+s);
+  dg.addColorStop(0,'rgba(60,30,15,0)');
+  dg.addColorStop(1,'rgba(60,30,15,.35)');
+  g.fillStyle=dg;
+  g.beginPath();
+  g.roundRect(p+1,p+1,s-2,s-2,s*.18);
+  g.fill();
+  // Тонкая тёмная обводка для матового эффекта
+  g.strokeStyle=COL_DARK[i];
+  g.lineWidth=1;
+  g.beginPath();
+  g.roundRect(p+1.5,p+1.5,s-3,s-3,s*.18);
+  g.stroke();
+  // Мелкие песчинки внутри блока (текстура песка)
+  g.fillStyle='rgba(120,70,35,.25)';
+  const seed=(i+1)*7;
+  for(let k=0;k<6;k++){
+   const px=p+((seed+k*13)%(s-6))+3;
+   const py=p+((seed*3+k*7)%(s-6))+3;
+   g.fillRect(px,py,1.5,1.5);
+  }
+  // Светлые вкрапления
+  g.fillStyle='rgba(255,235,200,.35)';
+  for(let k=0;k<4;k++){
+   const px=p+((seed*2+k*11)%(s-6))+3;
+   const py=p+((seed*5+k*9)%(s-6))+3;
+   g.fillRect(px,py,1,1);
+  }
+  out.push(o);
+ });
+ out.p=p;out.z=z;
+ return out;
+}
+function put(g,sp,px,py,s,ci,a){g.globalAlpha=a;g.drawImage(sp[ci-1],px*s-sp.p,py*s-sp.p,sp.z,sp.z)}
+
+/* ─── Буферы отрисовки ─── */
+function redrawBgBuf(){
+ bgx.setTransform(DPR,0,0,DPR,0,0);
+ bgx.clearRect(0,0,W*cs,H*cs);
+ // Фон поля — тёмный песчаник
+ bgx.fillStyle='#2a1812';
+ bgx.fillRect(0,0,W*cs,H*cs);
+ // Сетка — тонкая, песочная, матовая
+ bgx.strokeStyle='rgba(200,150,90,.08)';
+ bgx.lineWidth=1;
+ bgx.beginPath();
+ for(let i=1;i<W;i++){bgx.moveTo(i*cs+.5,0);bgx.lineTo(i*cs+.5,H*cs)}
+ for(let j=1;j<H;j++){bgx.moveTo(0,j*cs+.5);bgx.lineTo(W*cs,j*cs+.5)}
+ bgx.stroke();
+}
+function redrawLockBuf(){
+ lockx.setTransform(DPR,0,0,DPR,0,0);
+ lockx.clearRect(0,0,W*cs,H*cs);
+ if(grid){for(let j=0;j<H;j++)for(let i=0;i<W;i++){const v=grid[j][i];if(v)put(lockx,spr,i,j,cs,v,1)}}
+ lockx.globalAlpha=1;
+}
+
+let hud={};
+function setT(id,v){if(hud[id]!==v){hud[id]=v;const el=$('#'+id);if(el)el.textContent=v}}
+function draw(){
+ x.setTransform(DPR,0,0,DPR,0,0);
+ x.clearRect(0,0,W*cs,H*cs);
+ x.drawImage(bgBuf,0,0,W*cs,H*cs);
+ if(gridDirty){redrawLockBuf();gridDirty=false}
+ x.drawImage(lockBuf,0,0,W*cs,H*cs);
+ // Призрак фигуры — матовый, полупрозрачный
+ if(cur&&st!=='over'&&st!=='win'){
+  let gy=cur.y;while(!hit(cur.m,cur.x,gy+1))gy++;
+  for(let j=0;j<cur.m.length;j++)for(let q=0;q<cur.m[j].length;q++)if(cur.m[j][q]){
+   put(x,spr,cur.x+q,gy+j,cs,cur.c,.22);
+  }
+  for(let j=0;j<cur.m.length;j++)for(let q=0;q<cur.m[j].length;q++)if(cur.m[j][q]){
+   put(x,spr,cur.x+q,cur.y+j,cs,cur.c,1);
+  }
+ }
+ x.globalAlpha=1;
+ drawRipples(x);
+ if(sandGrains.length)drawSand(x);
+ if(hud.nx!==nxt){hud.nx=nxt;nx.setTransform(DPR,0,0,DPR,0,0);nx.clearRect(0,0,nc.width,nc.height);
+  if(nxt!==undefined){const m=SH[nxt];for(let j=0;j<m.length;j++)for(let q=0;q<m[j].length;q++)if(m[j][q])put(nx,sprN,q+(4-m[0].length)/2,j+(4-m.length)/2,ns,nxt+1,1);nx.globalAlpha=1}}
+ setT('sc',score);setT('li',lines);
+ if(curLevel){
+  const t=curLevel.type;
+  if(t==='time'){setT('tm',Math.ceil(timeLeft));setT('tg',curLevel.target)}
+  else if(t==='score'){setT('tm','—');setT('tg',curLevel.target)}
+  else if(t==='lines'){setT('tm','—');setT('tg',curLevel.target)}
+  else{setT('tm','—');setT('tg','—')}
+ }
+}
+
+function renderQuest(){
+ const q=$('#quest');
+ if(!curLevel){q.innerHTML='';return}
+ const t=curLevel.type;
+ let prog='',goalText='';
+ if(t==='score'){prog=`${score} / ${curLevel.target}`;goalText='Набрать очки'}
+ else if(t==='lines'){prog=`${lines} / ${curLevel.target}`;goalText='Собрать линии'}
+ else if(t==='clear'){prog='Очистить всё поле';goalText='Очистить поле'}
+ else if(t==='time'){prog=`${score} / ${curLevel.target}`;goalText='На время'}
+ q.innerHTML=`<div class="quest-box"><small>ИСПЫТАНИЕ</small><b>${goalText}</b><div class="prog">${prog}</div></div>`;
+}
+
+function fit(){
+ const mobile=matchMedia('(hover:none) and (pointer:coarse)').matches;
+ DPR=Math.min(devicePixelRatio||1,mobile?1.5:2);
+ const g=$('#game'),port=matchMedia('(orientation:portrait)').matches;
+ const isPhoneLand=matchMedia('(hover:none) and (pointer:coarse) and (max-width:820px) and (orientation:landscape)').matches;
+ if(isPhoneLand)return;
+ const ctMain=$('#ctrlMain'), sd=$('#side'), sdR=$('#sideR'), bwEl=$('#bw'), qEl=$('#quest');
+ const vis=el=>!!el&&getComputedStyle(el).display!=='none';
+ const inFlow=el=>vis(el)&&getComputedStyle(el).position!=='absolute';
+ const gap=parseFloat(getComputedStyle($('#main')).gap)||10;
+ const kids=[sd,bwEl,qEl,ctMain].filter(inFlow);
+ const gcs=getComputedStyle(g);
+ const padV=parseFloat(gcs.paddingTop)+parseFloat(gcs.paddingBottom);
+ let others=0;
+ kids.forEach(el=>{if(el!==bwEl)others+=el.offsetHeight});
+ let hh=g.clientHeight-padV-8-others-gap*Math.max(0,kids.length-1);
+ let aw;
+ if(port){aw=innerWidth-20}
+ else{
+  const leftW=sd.offsetWidth||0;
+  const rightW=(sdR&&getComputedStyle(sdR).display!=='none')?(sdR.offsetWidth+16):0;
+  aw=innerWidth-24-leftW-32-rightW;
+ }
+ cs=Math.max(8,Math.floor(Math.min((hh-2)/H,(aw-2)/W)));
+ $('#main').style.setProperty('--mw',(cs*W+2)+'px');bwEl.style.height=(H*cs+2)+'px';
+ c.width=W*cs*DPR;c.height=H*cs*DPR;c.style.width=(W*cs+2)+'px';c.style.height=(H*cs+2)+'px';
+ ns=Math.max(14,Math.min(30,Math.floor(cs*.9)));const n=ns*4;
+ nc.width=n*DPR;nc.height=n*DPR;nc.style.width=n+'px';nc.style.height=n+'px';
+ spr=mkSprites(cs);sprN=mkSprites(ns);hud.nx=null;
+ bgBuf.width=W*cs*DPR;bgBuf.height=H*cs*DPR;
+ lockBuf.width=W*cs*DPR;lockBuf.height=H*cs*DPR;
+ redrawBgBuf();gridDirty=true;
+}
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,80)});
+addEventListener('orientationchange',()=>setTimeout(fit,150));
+
+/* ─── Фон-пустыня ─── */
+const bg=$('#bg'),b=bg.getContext('2d');let bw=0,bh=0,bgT=0;
+function bgSize(){bg.width=bw=innerWidth>>1;bg.height=bh=innerHeight>>1}
+addEventListener('resize',bgSize);bgSize();
+
+function drawDesert(t){
+ // Небо — матовый градиент заката (без блеска)
+ const sky=b.createLinearGradient(0,0,0,bh*0.65);
+ sky.addColorStop(0,'#4a2242');
+ sky.addColorStop(0.35,'#8a3a52');
+ sky.addColorStop(0.6,'#c25a48');
+ sky.addColorStop(0.85,'#d4823a');
+ sky.addColorStop(1,'#e8b060');
+ b.fillStyle=sky;b.fillRect(0,0,bw,bh*0.65);
+
+ // Солнце — матовый диск без свечения
+ const sunY=bh*0.48+Math.sin(t*0.0003)*4;
+ const sunR=bh*0.11;
+ b.fillStyle='#f4d58a';
+ b.beginPath();b.arc(bw*0.72,sunY,sunR,0,6.283);b.fill();
+ // Лёгкое затемнение по краю (без резкого блика)
+ b.strokeStyle='rgba(180,110,50,.3)';
+ b.lineWidth=2;
+ b.beginPath();b.arc(bw*0.72,sunY,sunR-1,0,6.283);b.stroke();
+
+ // Дюны — плоские матовые слои
+ const layers=[
+  {y:0.58,c1:'#c97b3a',c2:'#a0522d',amp:0.035,spd:0.00020,off:0},
+  {y:0.68,c1:'#a0522d',c2:'#7a3a20',amp:0.045,spd:-0.00015,off:1.7},
+  {y:0.80,c1:'#7a3a20',c2:'#4a2415',amp:0.055,spd:0.00010,off:3.4},
+  {y:0.92,c1:'#4a2415',c2:'#2a140a',amp:0.040,spd:-0.00008,off:5.0}
+ ];
+ for(const L of layers){
+  const baseY=bh*L.y;
+  const grad=b.createLinearGradient(0,baseY-bh*0.1,0,bh);
+  grad.addColorStop(0,L.c1);grad.addColorStop(1,L.c2);
+  b.fillStyle=grad;
+  b.beginPath();
+  b.moveTo(0,bh);
+  for(let px=0;px<=bw;px+=6){
+   const nx=px/bw;
+   const yy=baseY + Math.sin(nx*4.2+t*L.spd+L.off)*bh*L.amp
+                  + Math.sin(nx*9.1+t*L.spd*1.3+L.off*1.7)*bh*L.amp*0.4;
+   b.lineTo(px,yy);
+  }
+  b.lineTo(bw,bh);b.closePath();b.fill();
+ }
+
+ // Песчинки, летящие по ветру — матовые, тусклые
+ b.fillStyle='rgba(200,160,100,.4)';
+ for(let i=0;i<35;i++){
+  const px=((t*0.02+i*137)%(bw+40))-20;
+  const py=bh*0.5+Math.sin(i*3.7+t*0.0005)*bh*0.35;
+  b.globalAlpha=0.12+Math.abs(Math.sin(i+t*0.001))*0.28;
+  b.fillRect(px,py,2,1);
+ }
+ b.globalAlpha=1;
+
+ // Пирамиды — плоские матовые
+ function pyramid(px,py,w,h){
+  b.fillStyle='rgba(70,36,22,.6)';
+  b.beginPath();b.moveTo(px,py-h);b.lineTo(px-w/2,py);b.lineTo(px+w/2,py);b.closePath();b.fill();
+  // Тень на одной стороне
+  b.fillStyle='rgba(40,20,12,.45)';
+  b.beginPath();b.moveTo(px,py-h);b.lineTo(px+w/2,py);b.lineTo(px+w*0.15,py);b.closePath();b.fill();
+ }
+ pyramid(bw*0.15,bh*0.62,bw*0.13,bh*0.16);
+ pyramid(bw*0.28,bh*0.63,bw*0.09,bh*0.11);
+ pyramid(bw*0.88,bh*0.62,bw*0.11,bh*0.14);
+}
+
+/* ─── Цикл ─── */
+let last=0;
+function loop(t){
+ const dt=Math.min(.1,(t-last)/1000||0);last=t;
+ if(st==='play'){
+  acc+=dt*1000;
+  const iv=Math.max(90,800-lines*10);
+  while(acc>=iv&&st==='play'){acc-=iv;if(!hit(cur.m,cur.x,cur.y+1))cur.y++;else lock()}
+  if(timeTotal>0){timeLeft-=dt;if(timeLeft<=0){timeLeft=0;timeOut()}}
+  renderQuest();
+ }
+ updateSand(dt);
+ draw();
+ if(t-bgT>40){bgT=t;drawDesert(t)}
+ requestAnimationFrame(loop)}
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('show',s.id===id))}
+
+function renderLevels(){
+ const g=$('#lvlGrid');g.innerHTML='';
+ LEVELS.forEach((lv,i)=>{
+  const unlocked=i<=S.progress;
+  const done=i<S.progress;
+  const d=document.createElement('div');
+  d.className='lvl'+(unlocked?'':' locked')+(done?' done':'');
+  const typeName={score:'ОЧКИ',lines:'ЛИНИИ',clear:'ОЧИСТКА',time:'ВРЕМЯ'}[lv.type];
+  d.innerHTML=`<div class="num">${i+1}</div><div class="type">${typeName}</div>${done?'<div class="star">★</div>':''}`;
+  d.title=lv.desc;
+  if(unlocked)d.onclick=()=>startLevel(i);
+  g.appendChild(d);
+ });
+}
+
+function toast(msg){
+ const el=$('#toast');el.textContent=msg;el.classList.add('show');
+ clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),1500);
+}
+
+$('#bPlay').onclick=()=>{ensureAudio();startLevel(Math.min(S.progress,LEVELS.length-1))};
+$('#bLevels').onclick=()=>{renderLevels();show('levels')};
+$('#bSettings').onclick=()=>{
+ $('#musicSlider').value=S.music;$('#musicVal').textContent=S.music;
+ $('#sfxSlider').value=S.sfx;$('#sfxVal').textContent=S.sfx;
+ show('settings')};
+$('#bHow').onclick=()=>show('how');
+$('#bLevelsBack').onclick=()=>show('menu');
+$('#bSettingsBack').onclick=()=>{save();show('menu')};
+$('#bHowBack').onclick=()=>show('menu');
+$('#bRes').onclick=act.pause;
+$('#bRestart').onclick=()=>startLevel(level);
+$('#bMenu1').onclick=$('#bMenu2').onclick=$('#bMenuWin').onclick=()=>{st='menu';stopMusic();show('menu')};
+$('#bAgain').onclick=()=>startLevel(level);
+$('#bNext').onclick=()=>nextLevel();
+
+$('#musicSlider').oninput=e=>{S.music=+e.target.value;$('#musicVal').textContent=S.music;updateMusicVol()};
+$('#sfxSlider').oninput=e=>{S.sfx=+e.target.value;$('#sfxVal').textContent=S.sfx;sfx.move()};
+$('#bReset').onclick=()=>{
+ if(confirm('Сбросить весь прогресс?')){S.progress=0;save();toast('ПРОГРЕСС СБРОШЕН')}
+};
+
+addEventListener('keydown',e=>{const k=e.key;
+ if(k===' '||k==='ArrowLeft'||k==='ArrowRight'||k==='ArrowDown'||k==='ArrowUp'||k==='p'||k==='P'||k==='Escape')e.preventDefault();
+ const m={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'rot',x:'rot',X:'rot',' ':'hard',p:'pause',P:'pause',Escape:'pause'}[k];
+ if(m)doAct(m)});
+document.querySelectorAll('.cb').forEach(el=>{let t1,t2;const stop=()=>{clearTimeout(t1);clearInterval(t2)};
+ el.addEventListener('pointerdown',e=>{e.preventDefault();doAct(el.dataset.a);
+  if(el.dataset.r)t1=setTimeout(()=>t2=setInterval(()=>doAct(el.dataset.a),el.dataset.a==='down'?60:90),180)});
+ ['pointerup','pointerleave','pointercancel'].forEach(v=>el.addEventListener(v,stop))});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&st==='play')act.pause()});
+
+show('menu');fit();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
