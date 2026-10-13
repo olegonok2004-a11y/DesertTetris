@@ -159,7 +159,6 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
   .cb{height:68px}
 }
 
-/* ─── ПК и планшет-горизонталь: КОМПАКТНОЕ меню ─── */
 @media (min-width:821px) and (orientation:landscape){
   #menu{gap:clamp(6px,1.2vh,14px);padding:20px}
   #menu .inf{font-size:clamp(50px,11vmin,110px);line-height:.85}
@@ -233,7 +232,7 @@ h2{margin:0;font-size:clamp(22px,5vmin,36px);letter-spacing:.15em;color:var(--c1
 
 <div class="screen show" id="menu">
  <div class="inf">☀</div>
- <h1>TETRIS</h1><div class="sub"> · ПУТЬ ЧЕРЕЗ ПУСТЫНЮ · </div>
+ <h1>DESERT</h1><div class="sub">TETRIS · ПУТЬ ЧЕРЕЗ ПУСТЫНЮ</div>
  <button class="btn" id="bPlay">ИГРАТЬ</button>
  <button class="btn alt" id="bLevels">УРОВНИ</button>
  <button class="btn alt" id="bSettings">НАСТРОЙКИ</button>
@@ -317,26 +316,28 @@ let S={progress:0,music:50,sfx:70};
 try{Object.assign(S,JSON.parse(localStorage.getItem('desertTetris')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('desertTetris',JSON.stringify(S))}catch(e){}};
 
+/* ─── Уровни ───
+   Для clear-уровней density уменьшен, чтобы поле было почти пустым */
 const LEVELS=[
  {name:'Первые шаги',    type:'score',   target:500,   time:0,  desc:'Набрать 500 очков'},
  {name:'Песчаный ветер', type:'lines',   target:5,     time:0,  desc:'Собрать 5 линий'},
- {name:'Занесённый храм',type:'clear',   target:0,     time:0,  density:0.35, desc:'Расчистить занесённые блоки'},
+ {name:'Занесённый храм',type:'clear',   target:0,     time:0,  density:0.20, desc:'Расчистить занесённые блоки'},
  {name:'Полуденный зной',type:'score',   target:1500,  time:0,  desc:'Набрать 1500 очков'},
  {name:'Караван',        type:'lines',   target:10,    time:0,  desc:'Собрать 10 линий'},
  {name:'Песчаная буря',  type:'time',    target:600,   time:60, desc:'600 очков за 60 секунд'},
  {name:'Дюны',           type:'score',   target:2500,  time:0,  desc:'Набрать 2500 очков'},
- {name:'Погребённый город',type:'clear', target:0,     time:0,  density:0.5, desc:'Расчистить занесённые блоки'},
+ {name:'Погребённый город',type:'clear', target:0,     time:0,  density:0.28, desc:'Расчистить занесённые блоки'},
  {name:'Мираж',          type:'time',    target:1000,  time:75, desc:'1000 очков за 75 секунд'},
  {name:'Скорпион',       type:'lines',   target:15,    time:0,  desc:'Собрать 15 линий'},
  {name:'Закат в пустыне',type:'score',   target:4000,  time:0,  desc:'Набрать 4000 очков'},
  {name:'Пирамиды',       type:'time',    target:2000,  time:90, desc:'2000 очков за 90 секунд'},
- {name:'Гробница',       type:'clear',   target:0,     time:0,  density:0.6, desc:'Расчистить занесённые блоки'},
+ {name:'Гробница',       type:'clear',   target:0,     time:0,  density:0.35, desc:'Расчистить занесённые блоки'},
  {name:'Самум',          type:'lines',   target:20,    time:0,  desc:'Собрать 20 линий'},
  {name:'Фата-моргана',   type:'score',   target:6000,  time:0,  desc:'Набрать 6000 очков'},
  {name:'Ночная пустыня', type:'time',    target:2500,  time:100,desc:'2500 очков за 100 секунд'},
  {name:'Каньон',         type:'lines',   target:25,    time:0,  desc:'Собрать 25 линий'},
  {name:'Пески времени',  type:'score',   target:8000,  time:0,  desc:'Набрать 8000 очков'},
- {name:'Великая пирамида',type:'clear',  target:0,     time:0,  density:0.7, desc:'Расчистить занесённые блоки'},
+ {name:'Великая пирамида',type:'clear',  target:0,     time:0,  density:0.42, desc:'Расчистить занесённые блоки'},
  {name:'Легенда пустыни',type:'time',    target:5000,  time:120,desc:'5000 очков за 120 секунд'}
 ];
 
@@ -520,14 +521,20 @@ function pull(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){const j
 function hit(m,px,py){for(let r=0;r<m.length;r++)for(let q=0;q<m[r].length;q++)if(m[r][q]){const X=px+q,Y=py+r;if(X<0||X>=W||Y>=H||(Y>=0&&grid[Y][X]))return true}return false}
 function spawn(){const i=nxt;nxt=pull();const m=SH[i].map(r=>r.slice());cur={m,c:i+1,x:(W-m[0].length)/2|0,y:0,softDrop:0};if(hit(cur.m,cur.x,cur.y))fail()}
 
+/* ─── Гораздо более простая генерация для clear-уровней ───
+   Меньше строк, больше дыр в каждой строке — поле почти пустое,
+   игрок легко может достроить линии и очистить его. */
 function generatePreFilled(density){
  const g=Array.from({length:H},()=>Array(W).fill(0));
- const bottomRows=Math.floor(H*0.45);
- const rowsToFill=Math.max(2,Math.floor(bottomRows*density));
+ // Максимум 5 строк, и то только при density=1.0
+ const maxRows=5;
+ const rowsToFill=Math.max(1,Math.round(maxRows*density));
+ // Заполняем снизу вверх, оставляя МНОГО дыр
  for(let r=0;r<rowsToFill;r++){
   const y=H-1-r;
+  // 4-6 дыр в каждой строке — строка почти пустая
+  const holeCount=4+Math.floor(Math.random()*3); // 4..6
   const holes=new Set();
-  const holeCount=1+Math.floor(Math.random()*2);
   while(holes.size<holeCount) holes.add(Math.floor(Math.random()*W));
   for(let i=0;i<W;i++){
    if(!holes.has(i)){
@@ -535,10 +542,11 @@ function generatePreFilled(density){
    }
   }
  }
- const extra=Math.floor(rowsToFill*1.5);
+ // Пара одиночных блоков выше для визуального интереса, но не мешают
+ const extra=1+Math.floor(rowsToFill*0.6);
  for(let k=0;k<extra;k++){
-  const y=H-1-rowsToFill-Math.floor(Math.random()*3);
-  if(y<2)continue;
+  const y=H-1-rowsToFill-Math.floor(Math.random()*2);
+  if(y<3)continue;
   const i=Math.floor(Math.random()*W);
   if(!g[y][i]) g[y][i]=1+Math.floor(Math.random()*COL.length);
  }
